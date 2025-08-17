@@ -4,6 +4,7 @@ from langchain_community.vectorstores import Chroma
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain.schema import Document
 from backend.config import Config
+from chromadb.config import Settings
 
 class VectorStore:
     def __init__(self):
@@ -29,7 +30,8 @@ class VectorStore:
             self.vector_store = Chroma(
                 collection_name=Config.COLLECTION_NAME,
                 embedding_function=self.embeddings,
-                persist_directory=Config.CHROMA_DB_PATH
+                persist_directory=Config.CHROMA_DB_PATH,
+                client_settings=Settings(anonymized_telemetry=False)
             )
             print("Vector store initialized successfully")
         except Exception as e:

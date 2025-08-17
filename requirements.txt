@@ -5,7 +5,7 @@ langchain-google-genai==0.0.8
 langchain-community==0.0.13
 chromadb==0.4.22
 sentence-transformers==2.2.2
-pypdf2==3.0.1
+pypdf
 python-dotenv==1.0.0
 google-generativeai==0.3.2
 gunicorn==21.2.0
