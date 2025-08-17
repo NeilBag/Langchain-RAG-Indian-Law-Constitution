@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indian Legal Assistant</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .chat-container {
+            height: calc(100vh - 200px);
+        }
+        .message-bubble {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .typing-indicator {
+            display: none;
+        }
+        .typing-indicator.show {
+            display: flex;
+        }
+        .dot {
+            animation: typing 1.4s infinite ease-in-out;
+        }
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">
+                <i class="fas fa-balance-scale text-blue-600 mr-3"></i>
+                Indian Legal Assistant
+            </h1>
+            <p class="text-gray-600">Ask questions about Indian Constitution & Bharatiya Nyaya Sanhita</p>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">
+                <i class="fas fa-upload text-green-600 mr-2"></i>
+                Document Management
+            </h2>
+            <div class="flex flex-col sm:flex-row gap-4">
+                <div class="flex-1">
+                    <input type="file" id="fileInput" multiple accept=".pdf" class="hidden">
+                    <button onclick="document.getElementById('fileInput').click()" 
+                            class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
+                        <i class="fas fa-file-pdf mr-2"></i>Upload PDF Documents
+                    </button>
+                </div>
+                <button onclick="initializeWithExistingPDFs()" 
+                        class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition duration-200">
+                    <i class="fas fa-sync mr-2"></i>Use Existing PDFs
+                </button>
+            </div>
+            <div id="uploadStatus" class="mt-4 text-sm"></div>
+        </div>
+
+        <!-- Conversation Management -->
+        <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold">
+                    <i class="fas fa-comments text-purple-600 mr-2"></i>
+                    Conversation
+                </h3>
+                <div class="flex gap-2">
+                    <button onclick="startNewConversation()" 
+                            class="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700 transition duration-200">
+                        <i class="fas fa-plus mr-1"></i>New Chat
+                    </button>
+                    <button onclick="showRecentSessions()" 
+                            class="bg-gray-600 text-white px-3 py-1 rounded text-sm hover:bg-gray-700 transition duration-200">
+                        <i class="fas fa-history mr-1"></i>History
+                    </button>
+                </div>
+            </div>
+            <div class="mt-2 text-xs text-gray-600">
+                <span id="sessionInfo">Context-aware conversation active</span>
+            </div>
+        </div>
+
+        <!-- Chat Interface -->
+        <div class="bg-white rounded-lg shadow-md">
+            <!-- Chat Header -->
+            <div class="bg-blue-600 text-white p-4 rounded-t-lg">
+                <h2 class="text-xl font-semibold">
+                    <i class="fas fa-comments mr-2"></i>Legal Assistant Chat
+                </h2>
+            </div>
+
+            <!-- Chat Messages -->
+            <div id="chatContainer" class="chat-container overflow-y-auto p-4 space-y-4">
+                <div class="message-bubble bg-blue-100 p-4 rounded-lg">
+                    <div class="flex items-start">
+                        <i class="fas fa-robot text-blue-600 mr-3 mt-1"></i>
+                        <div>
+                            <p class="text-gray-800">Hello! I'm your Indian Legal Assistant. I can help you with questions about:</p>
+                            <ul class="mt-2 text-sm text-gray-600 list-disc list-inside">
+                                <li>Indian Constitution - Articles, Fundamental Rights, Directive Principles</li>
+                                <li>Bharatiya Nyaya Sanhita - Criminal law provisions and sections</li>
+                                <li>Income Tax Laws - Tax deductions, TDS, Assessment, Compliance</li>
+                            </ul>
+                            <p class="mt-2 text-sm text-gray-600">Please upload your legal documents or use existing PDFs to get started!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Typing Indicator -->
+            <div id="typingIndicator" class="typing-indicator px-4 pb-2">
+                <div class="flex items-center text-gray-500">
+                    <i class="fas fa-robot mr-3"></i>
+                    <span class="mr-2">Assistant is typing</span>
+                    <div class="flex space-x-1">
+                        <div class="dot w-2 h-2 bg-gray-400 rounded-full"></div>
+                        <div class="dot w-2 h-2 bg-gray-400 rounded-full"></div>
+                        <div class="dot w-2 h-2 bg-gray-400 rounded-full"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Input -->
+            <div class="border-t p-4">
+                <div class="flex space-x-2">
+                    <input type="text" id="messageInput" placeholder="Ask about Indian Constitution or Bharatiya Nyaya Sanhita..." 
+                           class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button onclick="sendMessage()" id="sendButton"
+                            class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
