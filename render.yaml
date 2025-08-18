@@ -3,10 +3,22 @@ services:
     name: indian-legal-rag-chatbot
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    startCommand: gunicorn --workers 4 --worker-class gevent --bind 0.0.0.0:$PORT --timeout 120 app:app
     envVars:
       - key: GOOGLE_API_KEY
         sync: false
+      - key: CHROMA_DB_PATH
+        value: ./chroma_db
+    disk:
+      name: chroma-storage
+      mountPath: /opt/render/project/src/chroma_db
+      sizeGB: 1
+  - type: job
+    name: document-indexer
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python run_indexing.py
+    envVars:
       - key: CHROMA_DB_PATH
         value: ./chroma_db
     disk:

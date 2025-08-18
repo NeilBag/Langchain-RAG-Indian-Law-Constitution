@@ -58,7 +58,10 @@ def auto_initialize_documents():
         print(f"Error during auto-initialization: {str(e)}")
 
 # Perform auto-initialization
-auto_initialize_documents()
+# The line below is commented out to prevent long startup times on Render,
+# which can cause deployment timeouts. Initialization can be triggered
+# manually via the /api/initialize-with-existing-pdfs endpoint.
+# auto_initialize_documents()
 
 # Initialize RAG chain after documents are loaded
 rag_chain = RAGChain()
