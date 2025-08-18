@@ -58,7 +58,10 @@ def auto_initialize_documents():
         print(f"Error during auto-initialization: {str(e)}")
 
 # Perform auto-initialization
-auto_initialize_documents()
+# The line below is commented out to prevent long startup times on Render,
+# which can cause deployment timeouts. Initialization can be triggered
+# manually via the /api/initialize-with-existing-pdfs endpoint.
+# auto_initialize_documents()
 
 # Initialize RAG chain after documents are loaded
 rag_chain = RAGChain()
@@ -232,7 +235,3 @@ def not_found(e):
 @app.errorhandler(500)
 def internal_error(e):
     return jsonify({"error": "Internal server error"}), 500
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False)
