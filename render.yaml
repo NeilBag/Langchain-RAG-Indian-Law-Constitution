@@ -13,3 +13,15 @@ services:
       name: chroma-storage
       mountPath: /opt/render/project/src/chroma_db
       sizeGB: 1
+  - type: worker
+    name: document-indexer
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python run_indexing.py
+    envVars:
+      - key: CHROMA_DB_PATH
+        value: ./chroma_db
+    disk:
+      name: chroma-storage
+      mountPath: /opt/render/project/src/chroma_db
+      sizeGB: 1
