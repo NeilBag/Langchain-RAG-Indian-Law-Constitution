@@ -13,7 +13,7 @@ services:
       name: chroma-storage
       mountPath: /opt/render/project/src/chroma_db
       sizeGB: 1
-  - type: worker
+  - type: job
     name: document-indexer
     env: python
     buildCommand: pip install -r requirements.txt
