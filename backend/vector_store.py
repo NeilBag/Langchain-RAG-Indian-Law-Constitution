@@ -18,10 +18,10 @@ class VectorStore:
     def is_empty(self) -> bool:
         """Check if vector store is empty"""
         try:
-            # Try to get a small sample to check if collection has data
-            results = self.vector_store.similarity_search("test", k=1)
-            return len(results) == 0
-        except:
+            # A more reliable way to check for emptiness is to get the item count.
+            return self.vector_store._collection.count() == 0
+        except Exception as e:
+            print(f"Could not get collection count, assuming it's empty. Error: {e}")
             return True
     
     def setup_vector_store(self):
