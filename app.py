@@ -1,8 +1,6 @@
 from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 import os
-import shutil
-import threading
 from werkzeug.utils import secure_filename
 from backend.document_processor import DocumentProcessor
 from backend.vector_store import VectorStore
@@ -18,69 +16,10 @@ app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
 app.config['UPLOAD_FOLDER'] = 'uploads'
 
 # Initialize components
+# The vector store is now initialized in the gunicorn.conf.py `on_starting` hook.
 document_processor = DocumentProcessor()
 vector_store = VectorStore()
-
-# This function will run in a background thread to avoid blocking the server.
-def initialize_documents_on_startup():
-    """
-    Checks if the vector store is empty and, if so, processes and adds
-    PDF documents from the root and 'uploads' directories.
-    """
-    try:
-        # Use a new VectorStore instance in the thread
-        thread_vector_store = VectorStore()
-        
-        if thread_vector_store.is_empty():
-            print("BACKGROUND: Vector store is empty. Starting initialization...")
-            
-            project_root = os.path.dirname(os.path.abspath(__file__))
-            upload_folder = os.path.join(project_root, 'uploads')
-            
-            pdf_files = []
-            
-            # Find PDFs in project root
-            for f in os.listdir(project_root):
-                if f.lower().endswith('.pdf'):
-                    pdf_files.append(os.path.join(project_root, f))
-            
-            # Find PDFs in uploads folder
-            if os.path.exists(upload_folder):
-                for f in os.listdir(upload_folder):
-                    if f.lower().endswith('.pdf'):
-                        pdf_files.append(os.path.join(upload_folder, f))
-            
-            if pdf_files:
-                print(f"BACKGROUND: Found {len(pdf_files)} PDF files: {pdf_files}")
-                # Use a new DocumentProcessor instance in the thread
-                thread_document_processor = DocumentProcessor()
-                documents = thread_document_processor.process_documents(pdf_files)
-                
-                if documents:
-                    thread_vector_store.add_documents(documents)
-                    print(f"BACKGROUND: Successfully initialized with {len(documents)} document chunks.")
-                else:
-                    print("BACKGROUND: No documents could be processed.")
-            else:
-                print("BACKGROUND: No PDF files found for initialization.")
-        else:
-            print("BACKGROUND: Vector store already contains documents. Skipping initialization.")
-    except Exception as e:
-        print(f"BACKGROUND: Error during document initialization: {str(e)}")
-
-# Initialize RAG chain after documents are loaded
 rag_chain = RAGChain()
-
-# --- Background Initialization ---
-# We check for emptiness and start the indexing in a background thread.
-# This prevents the long-running task from blocking the web server startup.
-# A new vector store instance is created for the check to ensure it's fresh.
-if VectorStore().is_empty():
-    print("MAIN: Vector store is empty. Starting background thread for initialization.")
-    init_thread = threading.Thread(target=initialize_documents_on_startup, daemon=True)
-    init_thread.start()
-else:
-    print("MAIN: Vector store is already initialized.")
 
 # Ensure upload directory exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
