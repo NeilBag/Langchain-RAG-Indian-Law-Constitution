@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 import os
 import shutil
+import threading
 from werkzeug.utils import secure_filename
 from backend.document_processor import DocumentProcessor
 from backend.vector_store import VectorStore
@@ -20,51 +21,66 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 document_processor = DocumentProcessor()
 vector_store = VectorStore()
 
-# Auto-initialize with existing PDFs if vector store is empty
-def auto_initialize_documents():
-    """Auto-initialize documents on startup if vector store is empty"""
+# This function will run in a background thread to avoid blocking the server.
+def initialize_documents_on_startup():
+    """
+    Checks if the vector store is empty and, if so, processes and adds
+    PDF documents from the root and 'uploads' directories.
+    """
     try:
-        if vector_store.is_empty():
-            print("Vector store is empty. Auto-initializing with existing PDFs...")
+        # Use a new VectorStore instance in the thread
+        thread_vector_store = VectorStore()
+        
+        if thread_vector_store.is_empty():
+            print("BACKGROUND: Vector store is empty. Starting initialization...")
             
-            # Find PDF files in current directory and uploads folder
+            project_root = os.path.dirname(os.path.abspath(__file__))
+            upload_folder = os.path.join(project_root, 'uploads')
+            
             pdf_files = []
             
-            # Check current directory
-            for f in os.listdir("."):
+            # Find PDFs in project root
+            for f in os.listdir(project_root):
                 if f.lower().endswith('.pdf'):
-                    pdf_files.append(f)
+                    pdf_files.append(os.path.join(project_root, f))
             
-            # Check uploads directory
-            if os.path.exists(app.config['UPLOAD_FOLDER']):
-                for f in os.listdir(app.config['UPLOAD_FOLDER']):
+            # Find PDFs in uploads folder
+            if os.path.exists(upload_folder):
+                for f in os.listdir(upload_folder):
                     if f.lower().endswith('.pdf'):
-                        pdf_files.append(os.path.join(app.config['UPLOAD_FOLDER'], f))
+                        pdf_files.append(os.path.join(upload_folder, f))
             
             if pdf_files:
-                print(f"Found {len(pdf_files)} PDF files: {pdf_files}")
-                documents = document_processor.process_documents(pdf_files)
+                print(f"BACKGROUND: Found {len(pdf_files)} PDF files: {pdf_files}")
+                # Use a new DocumentProcessor instance in the thread
+                thread_document_processor = DocumentProcessor()
+                documents = thread_document_processor.process_documents(pdf_files)
                 
                 if documents:
-                    vector_store.add_documents(documents)
-                    print(f"Auto-initialized with {len(documents)} document chunks from {len(pdf_files)} files")
+                    thread_vector_store.add_documents(documents)
+                    print(f"BACKGROUND: Successfully initialized with {len(documents)} document chunks.")
                 else:
-                    print("No documents could be processed during auto-initialization")
+                    print("BACKGROUND: No documents could be processed.")
             else:
-                print("No PDF files found for auto-initialization")
+                print("BACKGROUND: No PDF files found for initialization.")
         else:
-            print("Vector store already contains documents. Skipping auto-initialization.")
+            print("BACKGROUND: Vector store already contains documents. Skipping initialization.")
     except Exception as e:
-        print(f"Error during auto-initialization: {str(e)}")
-
-# Perform auto-initialization
-# The line below is commented out to prevent long startup times on Render,
-# which can cause deployment timeouts. Initialization can be triggered
-# manually via the /api/initialize-with-existing-pdfs endpoint.
-# auto_initialize_documents()
+        print(f"BACKGROUND: Error during document initialization: {str(e)}")
 
 # Initialize RAG chain after documents are loaded
 rag_chain = RAGChain()
+
+# --- Background Initialization ---
+# We check for emptiness and start the indexing in a background thread.
+# This prevents the long-running task from blocking the web server startup.
+# A new vector store instance is created for the check to ensure it's fresh.
+if VectorStore().is_empty():
+    print("MAIN: Vector store is empty. Starting background thread for initialization.")
+    init_thread = threading.Thread(target=initialize_documents_on_startup, daemon=True)
+    init_thread.start()
+else:
+    print("MAIN: Vector store is already initialized.")
 
 # Ensure upload directory exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
