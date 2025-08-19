@@ -30,10 +30,10 @@ def initialize_documents_on_startup():
     try:
         # Use a new VectorStore instance in the thread
         thread_vector_store = VectorStore()
-
+        
         if thread_vector_store.is_empty():
             print("BACKGROUND: Vector store is empty. Starting initialization...")
-
+            
             project_root = os.path.dirname(os.path.abspath(__file__))
             upload_folder = os.path.join(project_root, 'uploads')
             
